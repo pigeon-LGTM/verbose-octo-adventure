@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌸 小扫雷 · 可爱版</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;display:flex;justify-content:center;align-items:center;background:linear-gradient(135deg,#fce4ec 0%,#f3e5f5 50%,#e8eaf6 100%);font-family:'Nunito','Segoe UI',sans-serif;padding:16px}
+.game-container{background:rgba(255,255,255,0.70);backdrop-filter:blur(12px);border-radius:28px;padding:28px 28px 32px;box-shadow:0 12px 40px rgba(180,130,200,0.20),0 4px 12px rgba(0,0,0,0.06);max-width:600px;width:100%}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.title{font-size:22px;font-weight:800;color:#7b4a8b;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.controls{display:flex;gap:6px}
+.controls button{border:none;background:#ede7f6;color:#6a3d7a;font-family:inherit;font-weight:700;font-size:13px;padding:6px 14px;border-radius:30px;cursor:pointer;transition:all .15s}
+.controls button:hover{background:#d1c4e9;transform:scale(1.04)}
+.controls button.active{background:#7e57c2;color:#fff;box-shadow:0 2px 8px rgba(126,87,194,0.3)}
+.top-bar{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.55);border-radius:40px;padding:8px 18px;margin-bottom:14px}
+.counter{display:flex;align-items:center;gap:6px;font-size:20px;font-weight:700;color:#5c3d6e}
+.counter span{min-width:36px;text-align:center;background:#fff;border-radius:20px;padding:2px 6px;font-size:18px}
+.face-btn{background:none;border:none;font-size:32px;line-height:1;cursor:pointer;transition:transform .12s;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.10))}
+.face-btn:hover{transform:scale(1.15)}.face-btn:active{transform:scale(0.92)}
+.board-wrapper{position:relative;display:flex;justify-content:center}
+.board{display:inline-grid;gap:3px;padding:10px;background:rgba(200,170,220,0.25);border-radius:16px;user-select:none}
+.cell{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px;font-weight:800;font-size:16px;cursor:pointer;transition:background .10s,transform .08s,box-shadow .10s}
+.cell.hidden{background:linear-gradient(145deg,#d7c4e3,#c9b0d8);box-shadow:0 2px 0 #b095c2,inset 0 1px 0 rgba(255,255,255,0.55)}
+.cell.hidden:hover{background:linear-gradient(145deg,#e0ceec,#d2badf);transform:scale(1.06)}.cell.hidden:active{transform:scale(0.94)}
+.cell.revealed{background:rgba(255,255,255,0.60);box-shadow:inset 0 1px 3px rgba(0,0,0,0.06);cursor:default}
+.cell.flagged{background:linear-gradient(145deg,#ffe0e0,#ffcdd2);box-shadow:0 1px 0 #ef9a9a}
+.cell.mine-exploded{background:#ff8a80;box-shadow:0 0 0 2px #ff5252;animation:pop .25s ease}
+.cell.mine-shown{background:rgba(255,200,200,0.45)}.cell.wrong-flag{background:#ffcdd2;text-decoration:line-through}
+.num-1{color:#5c6bc0}.num-2{color:#43a047}.num-3{color:#e53935}.num-4{color:#1e88e5}.num-5{color:#8d6e63}.num-6{color:#00897b}.num-7{color:#424242}.num-8{color:#6d4c41}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.70);backdrop-filter:blur(6px);border-radius:16px;opacity:0;pointer-events:none;transition:opacity .30s;z-index:10}
+.overlay.show{opacity:1;pointer-events:auto}
+.overlay .emoji-big{font-size:52px;margin-bottom:4px}.overlay .msg{font-size:20px;font-weight:800;color:#5c3d6e}.overlay .sub-msg{font-size:14px;color:#9575a7;margin-top:2px}
+.overlay .retry-btn{margin-top:12px;border:none;background:#ce93d8;color:#fff;font-family:inherit;font-weight:700;font-size:15px;padding:8px 28px;border-radius:30px;cursor:pointer;transition:background .15s,transform .10s}
+.overlay .retry-btn:hover{background:#ba68c8;transform:scale(1.05)}
+@media(max-width:480px){.game-container{padding:16px}.cell{width:34px;height:34px;font-size:14px}.board{gap:2px;padding:6px}.title{font-size:17px}.controls button{font-size:11px;padding:4px 10px}.face-btn{font-size:26px}.counter{font-size:16px}.counter span{min-width:28px;font-size:14px}}
+</style>
+</head>
+<body>
+<div class="game-container" id="app">
+<div class="header"><div class="title">🌸 小扫雷</div>
+<div class="controls">
+<button data-size="9" data-mines="10" class="active">简单</button>
+<button data-size="16" data-mines="40">中等</button>
+<button data-size="22" data-mines="99">困难</button>
+</div></div>
+<div class="top-bar">
+<div class="counter">💣 <span id="mineCount">010</span></div>
+<button class="face-btn" id="faceBtn">😊</button>
+<div class="counter">⏱ <span id="timerDisplay">000</span></div>
+</div>
+<div class="board-wrapper">
+<div class="board" id="board"></div>
+<div class="overlay" id="overlay">
+<div class="emoji-big" id="resultEmoji">🎉</div>
+<div class="msg" id="resultMsg">你赢啦！</div>
+<div class="sub-msg" id="resultSub"></div>
+<button class="retry-btn" id="retryBtn">✿ 再来一局</button>
+</div></div></div>
+<script>
+(function(){'use strict';
+var B=document.getElementById('board');
+var M=document.getElementById('mineCount');
+var T=document.getElementById('timerDisplay');
+var F=document.getElementById('faceBtn');
+var O=document.getElementById('overlay');
+var RE=document.getElementById('resultEmoji');
+var RM=document.getElementById('resultMsg');
+var RS=document.getElementById('resultSub');
+var RB=document.getElementById('retryBtn');
+var DB=document.querySelectorAll('.controls button');
+var ROWS,COLS,TOTAL,grid,gOver,first,flags,revealed,timer,sec,cur={s:9,m:10};
+function init(sz,mn){cur={s:sz,m:mn};ROWS=COLS=sz;TOTAL=mn;grid=[];gOver=!1;first=!0;flags=0;revealed=0;sec=0;timer&&(clearInterval(timer),timer=null);M.textContent=String(mn).padStart(3,'0');T.textContent='000';F.textContent='😊';O.classList.remove('show');B.style.gridTemplateColumns='repeat('+COLS+',1fr)';for(var r=0;r<ROWS;r++){grid[r]=[];for(var c=0;c<COLS;c++)grid[r][c]={mine:!1,revealed:!1,flagged:!1,adj:0}}B.innerHTML='';for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var el=document.createElement('div');el.className='cell hidden';el.dataset.r=r;el.dataset.c=c;B.appendChild(el)}resize()}
+function resize(){if(!ROWS)return;var vw=window.innerWidth,sz=vw<480?Math.min(34,Math.floor((vw-60)/COLS)):Math.min(40,Math.floor(520/COLS));document.querySelectorAll('.cell').forEach(function(e){e.style.width=sz+'px';e.style.height=sz+'px';e.style.fontSize=Math.max(12,sz-20)+'px'})}
+function place(sr,sc){var safe={};for(var d=-1;d<=1;d++)for(var e=-1;e<=1;e++){var nr=sr+d,nc=sc+e;nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&(safe[nr*COLS+nc]=!0)}var p=0;while(p<TOTAL){var r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);grid[r][c].mine||safe[r*COLS+c]||(grid[r][c].mine=!0,p++)}for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){if(grid[r][c].mine)continue;var cnt=0;for(var d=-1;d<=1;d++)for(var e=-1;e<=1;e++){var nr=r+d,nc=c+e;nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc].mine&&cnt++}grid[r][c].adj=cnt}}
+function el(r,c){return B.querySelector('[data-r="'+r+'"][data-c="'+c+'"]')}
+function rev(r,c){if(r<0||r>=ROWS||c<0||c>=COLS)return;var cell=grid[r][c];if(cell.revealed||cell.flagged)return;cell.revealed=!0;revealed++;var e=el(r,c);e.classList.remove('hidden');e.classList.add('revealed');if(cell.mine){e.classList.add('mine-exploded');e.innerHTML='💥';lose(r,c);return}if(cell.adj>0){e.textContent=cell.adj;e.classList.add('num-'+cell.adj)}else for(var d=-1;d<=1;d++)for(var f=-1;f<=1;f++)rev(r+d,c+f);win()}
+function flg(r,c){if(gOver)return;var cell=grid[r][c];if(cell.revealed)return;var e=el(r,c);if(cell.flagged){cell.flagged=!1;flags--;e.classList.remove('flagged');e.classList.add('hidden');e.innerHTML=''}else{cell.flagged=!0;flags++;e.classList.remove('hidden');e.classList.add('flagged');e.innerHTML='🚩'}M.textContent=String(TOTAL-flags).padStart(3,'0')}
+function st(){timer||(timer=setInterval(function(){sec++;T.textContent=String(Math.min(sec,999)).padStart(3,'0')},1e3))}
+function lose(r,c){gOver=!0;timer&&(clearInterval(timer),timer=null);F.textContent='😵';for(var a=0;a<ROWS;a++)for(var b=0;b<COLS;b++){var cell=grid[a][b];if(!cell.mine)continue;var e=el(a,b);(a!==r||b!==c)&&!cell.flagged&&(e.classList.remove('hidden'),e.classList.add('revealed','mine-shown'),e.innerHTML='💣')}for(var a=0;a<ROWS;a++)for(var b=0;b<COLS;b++){var cell=grid[a][b];cell.flagged&&!cell.mine&&(el(a,b).classList.add('wrong-flag'),el(a,b).innerHTML='❌')}over('😵','踩到地雷啦…','再试一次吧 ~')}
+function win(){var safe=ROWS*COLS-TOTAL;if(revealed>=safe&&!gOver){gOver=!0;timer&&(clearInterval(timer),timer=null);F.textContent='😎';for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){grid[r][c].mine&&!grid[r][c].flagged&&flg(r,c)}over('🎉','你赢啦！','用时 '+sec+' 秒')}}
+function over(e,m,s){RE.textContent=e;RM.textContent=m;RS.textContent=s;O.classList.add('show')}
+function chord(r,c){var cell=grid[r][c];if(!cell.revealed||cell.adj===0)return;var f=0;for(var d=-1;d<=1;d++)for(var e=-1;e<=1;e++){var nr=r+d,nc=c+e;nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc].flagged&&f++}if(f===cell.adj)for(var d=-1;d<=1;d++)for(var e=-1;e<=1;e++){var nr=r+d,nc=c+e;nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&rev(nr,nc)}}
+B.addEventListener('click',function(e){if(gOver)return;var ce=e.target.closest('.cell');if(!ce)return;var r=+ce.dataset.r,c=+ce.dataset.c;if(grid[r][c].flagged)return;if(grid[r][c].revealed&&grid[r][c].adj>0)chord(r,c);if(grid[r][c].revealed)return;first&&(first=!1,place(r,c),st());rev(r,c)})
+B.addEventListener('contextmenu',function(e){e.preventDefault();if(gOver)return;var ce=e.target.closest('.cell');if(!ce)return;var r=+ce.dataset.r,c=+ce.dataset.c;flg(r,c)})
+F.addEventListener('click',function(){init(cur.s,cur.m)})
+RB.addEventListener('click',function(){init(cur.s,cur.m)})
+DB.forEach(function(b){b.addEventListener('click',function(){DB.forEach(function(x){x.classList.remove('active')});b.classList.add('active');init(+b.dataset.size,+b.dataset.mines)})})
+window.addEventListener('resize',resize)
+init(9,10)
+})();
+</script>
+</body>
+</html>
